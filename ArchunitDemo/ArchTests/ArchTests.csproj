@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0-windows</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+      <PackageReference Include="TngTech.ArchUnitNET" Version="0.10.4" />
+      <PackageReference Include="TngTech.ArchUnitNET.xUnit" Version="0.10.4" />
+      <PackageReference Include="xunit" Version="2.4.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AnotherDesktopModule\AnotherDesktopModule.csproj" />
+      <ProjectReference Include="..\BusinessModule\BusinessModule.csproj" />
+      <ProjectReference Include="..\DataModule\DataModule.csproj" />
+      <ProjectReference Include="..\DesktopModule\DesktopModule.csproj" />
+    </ItemGroup>
+
+</Project>
