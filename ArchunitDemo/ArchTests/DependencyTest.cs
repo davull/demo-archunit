@@ -21,22 +21,23 @@ public class DependencyTest
             typeof(BusinessModuleMarker).Assembly,
             typeof(DesktopModuleMarker).Assembly,
             typeof(AnotherDesktopModuleMarker).Assembly,
+            typeof(DateTime).Assembly
         })
         .Build();
 
     // Define layers
     private readonly IObjectProvider<IType> DataLayer =
         Types().That().ResideInAssembly(typeof(DataModuleMarker).Assembly).As("Data layer");
-    
+
     private readonly IObjectProvider<IType> BusinessLayer =
         Types().That().ResideInAssembly(typeof(BusinessModuleMarker).Assembly).As("Business layer");
-    
+
     private readonly IObjectProvider<IType> DesktopLayer =
         Types().That().ResideInAssembly(typeof(DesktopModuleMarker).Assembly).As("Desktop layer");
-    
+
     private readonly IObjectProvider<IType> AnotherDesktopLayer =
         Types().That().ResideInAssembly(typeof(AnotherDesktopModuleMarker).Assembly).As("Another Desktop layer");
-    
+
     // Repositories
     private readonly IObjectProvider<Class> RepositoryClasses =
         Classes().That().HaveNameEndingWith("Repository").As("Repository classes");
@@ -46,17 +47,17 @@ public class DependencyTest
     {
         // Arrange
         var rule = Classes().That().Are(RepositoryClasses).Should().Be(DataLayer);
-        
+
         // Assert
         rule.Check(Architecture);
     }
-    
+
     [Fact]
     public void RepositoryClassesShouldNotBeInBusinessLayer()
     {
         // Arrange
         var rule = Classes().That().Are(RepositoryClasses).Should().NotBe(BusinessLayer);
-        
+
         // Assert
         rule.Check(Architecture);
     }
@@ -66,7 +67,7 @@ public class DependencyTest
     {
         // Arrange
         var rule = SliceRuleDefinition.Slices().Matching("ArchunitDemo.(*)").Should().BeFreeOfCycles();
-        
+
         // Act
         rule.Check(Architecture);
     }
@@ -76,11 +77,11 @@ public class DependencyTest
     {
         // Arrange
         var rule = Types().That().Are(DesktopLayer).Should().NotDependOnAny(DataLayer);
-        
+
         // Act
         rule.Check(Architecture);
     }
-    
+
     [Fact]
     public void DesktopLayerShouldNotReferenceAnotherDesktopLayerAndReverse()
     {
@@ -91,5 +92,24 @@ public class DependencyTest
         // Act
         rule1.Check(Architecture);
         rule2.Check(Architecture);
+    }
+
+    [Fact]
+    public void DateTimeNowShouldNotBeUsedInBusinessLayer()
+    {
+        // Arrange
+        var allClasses = Classes().That().Are(BusinessLayer);
+
+        var methodsNotToCall = MethodMembers()
+            .That()
+            .AreDeclaredIn(typeof(DateTime))
+            .And()
+            .AreStatic()
+            .And().HaveNameEndingWith("get_UtcNow()");
+
+        var rule = allClasses.Should().NotCallAny(methodsNotToCall);
+
+        // Act
+        rule.Check(Architecture);
     }
 }

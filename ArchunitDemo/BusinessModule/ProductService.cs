@@ -18,4 +18,14 @@ public class ProductService
             .Select(row => row.ToProduct())
             .ToImmutableList();
     }
+
+    public IReadOnlyCollection<Product> GetProductsFromLastTwoWeeks()
+    {
+        var date = DateTime.UtcNow.AddDays(-14);
+
+        return _productRepository.GetAllProducts()
+            .Where(row => row.CreatedAt >= date)
+            .Select(row => row.ToProduct())
+            .ToImmutableList();
+    }
 }
