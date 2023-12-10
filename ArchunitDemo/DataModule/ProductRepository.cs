@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Microsoft.Data.SqlClient;
 
 namespace ArchunitDemo.DataModule;
 
@@ -40,4 +41,13 @@ public class ProductRepository
     public ProductDatabaseRow? GetProductByName(string name) => _products.FirstOrDefault(p => p.ProductName == name);
 
     public IReadOnlyCollection<ProductDatabaseRow> GetAllProducts() => _products.ToImmutableList();
+
+    public int GetProductsCount()
+    {
+        using var con = new SqlConnection("Server=.;Database=ArchunitDemo;Trusted_Connection=True;");
+        con.Open();
+
+        using var cmd = new SqlCommand("SELECT COUNT(*) FROM Products", con);
+        return (int) cmd.ExecuteScalar();
+    }
 }

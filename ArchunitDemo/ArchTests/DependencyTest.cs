@@ -6,6 +6,7 @@ using ArchUnitNET.Domain;
 using ArchUnitNET.Fluent.Slices;
 using ArchUnitNET.Loader;
 using ArchUnitNET.xUnit;
+using Microsoft.Data.SqlClient;
 using Xunit;
 
 namespace ArchTests;
@@ -14,29 +15,49 @@ using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 public class DependencyTest
 {
+    private static readonly System.Reflection.Assembly DataModuleAssembly = typeof(DataModuleMarker).Assembly;
+    private static readonly System.Reflection.Assembly BusinessModuleAssembly = typeof(BusinessModuleMarker).Assembly;
+    private static readonly System.Reflection.Assembly DesktopModuleAssembly = typeof(DesktopModuleMarker).Assembly;
+
+    private static readonly System.Reflection.Assembly AnotherDesktopModuleAssembly =
+        typeof(AnotherDesktopModuleMarker).Assembly;
+
+    private static readonly System.Reflection.Assembly[] ProjectAssemblies =
+    {
+        DataModuleAssembly,
+        BusinessModuleAssembly,
+        DesktopModuleAssembly,
+        AnotherDesktopModuleAssembly
+    };
+
+    private static readonly System.Reflection.Assembly SystemAssembly =
+        typeof(DateTime).Assembly;
+
+    private static readonly System.Reflection.Assembly SystemDataAssembly =
+        typeof(SqlConnection).Assembly;
+
     private static readonly Architecture Architecture = new ArchLoader()
-        .LoadAssemblies(assemblies: new[]
-        {
-            typeof(DataModuleMarker).Assembly,
-            typeof(BusinessModuleMarker).Assembly,
-            typeof(DesktopModuleMarker).Assembly,
-            typeof(AnotherDesktopModuleMarker).Assembly,
-            typeof(DateTime).Assembly
-        })
+        .LoadAssemblies(
+            DataModuleAssembly,
+            BusinessModuleAssembly,
+            DesktopModuleAssembly,
+            AnotherDesktopModuleAssembly,
+            SystemAssembly,
+            SystemDataAssembly)
         .Build();
 
     // Define layers
     private readonly IObjectProvider<IType> DataLayer =
-        Types().That().ResideInAssembly(typeof(DataModuleMarker).Assembly).As("Data layer");
+        Types().That().ResideInAssembly(DataModuleAssembly).As("Data layer");
 
     private readonly IObjectProvider<IType> BusinessLayer =
-        Types().That().ResideInAssembly(typeof(BusinessModuleMarker).Assembly).As("Business layer");
+        Types().That().ResideInAssembly(BusinessModuleAssembly).As("Business layer");
 
     private readonly IObjectProvider<IType> DesktopLayer =
-        Types().That().ResideInAssembly(typeof(DesktopModuleMarker).Assembly).As("Desktop layer");
+        Types().That().ResideInAssembly(DesktopModuleAssembly).As("Desktop layer");
 
     private readonly IObjectProvider<IType> AnotherDesktopLayer =
-        Types().That().ResideInAssembly(typeof(AnotherDesktopModuleMarker).Assembly).As("Another Desktop layer");
+        Types().That().ResideInAssembly(AnotherDesktopModuleAssembly).As("Another Desktop layer");
 
     // Repositories
     private readonly IObjectProvider<Class> RepositoryClasses =
@@ -97,19 +118,29 @@ public class DependencyTest
     [Fact]
     public void DateTimeNowShouldNotBeUsedInBusinessLayer()
     {
-        // Arrange
-        var allClasses = Classes().That().Are(BusinessLayer);
+        var types = Types().That().Are(BusinessLayer);
 
         var methodsNotToCall = MethodMembers()
             .That()
             .AreDeclaredIn(typeof(DateTime))
+            .And().AreStatic()
+            .And().HaveNameEndingWith("get_UtcNow()")
+            .Or().HaveNameEndingWith("get_Now()");
+
+        var rule = types.Should().NotCallAny(methodsNotToCall);
+        rule.Check(Architecture);
+    }
+
+    [Fact]
+    public void OnlyDataLayerShouldUseDatabase()
+    {
+        var types = Types()
+            .That().ResideInAssembly(ProjectAssemblies[0], ProjectAssemblies[1..])
             .And()
-            .AreStatic()
-            .And().HaveNameEndingWith("get_UtcNow()");
+            .AreNot(DataLayer);
+        var typesNotToUse = Types().That().ResideInAssembly(SystemDataAssembly);
 
-        var rule = allClasses.Should().NotCallAny(methodsNotToCall);
-
-        // Act
+        var rule = types.Should().NotDependOnAny(typesNotToUse);
         rule.Check(Architecture);
     }
 }

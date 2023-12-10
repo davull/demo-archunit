@@ -9,7 +9,7 @@ public class ProductListViewModel
 
     public ProductListViewModel()
     {
-        var productService = new ProductService(); 
+        var productService = new ProductService();
         Products = new ObservableCollection<Product>(productService.GetAllProducts());
     }
 }
